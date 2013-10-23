@@ -43,7 +43,11 @@ enum KeepMode {
 };
 
 /* actual extraction routine */
+#ifdef UNICODE
+int tgz_extract(gzFile tgzFile, int cm, int junkPaths, enum KeepMode keep, int iCnt, TCHAR *iList[], int xCnt, TCHAR *xList[], int failOnHardLinks);
+#else
 int tgz_extract(gzFile tgzFile, int cm, int junkPaths, enum KeepMode keep, int iCnt, char *iList[], int xCnt, char *xList[], int failOnHardLinks);
+#endif
 
 /* recursive make directory */
 /* abort if you get an ENOENT errno somewhere in the middle */
@@ -51,7 +55,11 @@ int tgz_extract(gzFile tgzFile, int cm, int junkPaths, enum KeepMode keep, int i
 /* */
 /* return 1 if OK */
 /*        0 on error */
+#ifdef UNICODE
+int makedir (wchar_t *newdir);
+#else
 int makedir (char *newdir);
+#endif
 
 
 /* tar header */
@@ -94,7 +102,7 @@ int valid_checksum(struct tar_header *header);
 
 
 /* uses filename & file contents and returns best guess of file type CM_* */
-int getFileType(const char *fname);
+int getFileType(const TCHAR *fname);
 
 
 /* !!!USER SUPPLIED!!! */

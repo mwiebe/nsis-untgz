@@ -71,7 +71,7 @@ typedef struct gz_stream {
 } gz_stream;
 
 
-local gzFile gz_open      OF((const char *path, const char *mode, int  fd));
+local gzFile gz_open      OF((const TCHAR *path, const char *mode, int  fd));
 local int do_flush        OF((gzFile file, int flush));
 local int    get_byte     OF((gz_stream *s));
 local void   check_header OF((gz_stream *s));
@@ -89,7 +89,7 @@ local uLong  getLong      OF((gz_stream *s));
    zlib error is Z_MEM_ERROR).
 */
 local gzFile gz_open (path, mode, fd)
-    const char *path;
+    const TCHAR *path;
     const char *mode;
     int  fd;
 {
@@ -126,7 +126,8 @@ local gzFile gz_open (path, mode, fd)
     if (s->path == NULL) {
         return destroy(s), (gzFile)Z_NULL;
     }
-    strcpy(s->path, path); /* do this early for debugging */
+    //lstrcpyA(s->path, path); /* do this early for debugging */
+    WideCharToMultiByte(CP_ACP, 0, path, strlen(path), s->path, strlen(path)+1, "?", NULL);
 
     s->mode = '\0';
     do {
@@ -166,7 +167,7 @@ local gzFile gz_open (path, mode, fd)
     s->stream.avail_out = Z_BUFSIZE;
 
     errno = 0;
-    s->file = fd < 0 ? F_OPEN(path, fmode) : (FILE*)fdopen(fd, fmode);
+    s->file = fd < 0 ? F_OPEN(path, fmode) : (FILE*)_fdopen(fd, fmode);
 
     if (s->file == NULL) {
         return destroy(s), (gzFile)Z_NULL;
@@ -181,7 +182,7 @@ local gzFile gz_open (path, mode, fd)
      Opens a gzip (.gz) file for reading or writing.
 */
 gzFile ZEXPORT gzopen (path, mode)
-    const char *path;
+    const TCHAR *path;
     const char *mode;
 {
     return gz_open (path, mode, -1);

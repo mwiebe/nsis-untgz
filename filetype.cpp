@@ -14,20 +14,20 @@
    otherwise if 1st byte valid PROPERTY return CM_LZMA else CM_GZ
 */
 
-int getFileType(const char *fname)
+int getFileType(const TCHAR *fname)
 {
     /* read in chunk of data and try to make determination */
     union tar_buffer buf;
     FILE *f;
-    const char *fext;
+    const TCHAR *fext;
     
     /* point to extension, whatever after last . */
-    for (fext = fname+(strlen(fname)-1); fext >= fname; fext--)
+    for (fext = fname+(_tcslen(fname)-1); fext >= fname; fext--)
     {
         if (*fext == '.') break; /* start of file extension found */
     }
     if (*fext == '.') fext++; /* point just past dot */
-    else fext = "";
+    else fext = _T("");
 
     if ((f = fopen(fname, "rb")) != NULL)
     {
@@ -51,14 +51,14 @@ int getFileType(const char *fname)
             if ((buf.buffer[0]=='B') && (buf.buffer[1]=='Z'))
                 return CM_BZ2;
             /* if file extension .tgz or .gz then assume (CM_GZ) */
-            if ((strcmpi(fext,"tgz")==0) || (strcmpi(fext,"gz")==0))
+            if ((strcmpi(fext,_T("tgz"))==0) || (strcmpi(fext,_T("gz"))==0))
                 return CM_GZ;
             /* if file extension .tbz or .bz2 then assume (CM_BZ2) */
-            if ((strcmpi(fext,"tbz")==0) || (strcmpi(fext,"bz2")==0))
+            if ((strcmpi(fext,_T("tbz"))==0) || (strcmpi(fext,_T("bz2"))==0))
                 return CM_BZ2;
             /* if file extension .lzma or .tlz then assume lzma (CM_LZMA) */
             /* otherwise if 1st byte valid lzma PROPERTY byte return CM_LZMA else CM_GZ */
-            if ((strcmpi(fext,"tlz")==0) || (strcmpi(fext,"lzma")==0) || (buf.buffer[0] < (9*5*5)))
+            if ((strcmpi(fext,_T("tlz"))==0) || (strcmpi(fext,_T("lzma"))==0) || (buf.buffer[0] < (9*5*5)))
                 return CM_LZMA;
         }
         else fclose(f);  /* cleanup */

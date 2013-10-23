@@ -31,6 +31,7 @@
 #ifndef ZLIB_H
 #define ZLIB_H
 
+#include "../miniclib.h"
 #include "zconf.h"
 
 #ifdef __cplusplus
@@ -1065,7 +1066,11 @@ ZEXTERN int ZEXPORT uncompress OF((Bytef *dest,   uLongf *destLen,
 
 typedef voidp gzFile;
 
+#ifdef UNICODE
+ZEXTERN gzFile ZEXPORT gzopen  OF((const wchar_t *path, const char *mode));
+#else
 ZEXTERN gzFile ZEXPORT gzopen  OF((const char *path, const char *mode));
+#endif
 /*
      Opens a gzip (.gz) file for reading or writing. The mode parameter
    is as in fopen ("rb" or "wb") but can also include a compression level

@@ -138,7 +138,11 @@ extern const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  if defined(_WIN32_WCE)
 #    define fdopen(fd,mode) NULL /* No fdopen() */
 #  else
+#ifdef UNICODE
+#    define fdopen(fd,type)  _wfdopen(fd,type)
+#else
 #    define fdopen(fd,type)  _fdopen(fd,type)
+#endif
 #  endif
 #endif
 

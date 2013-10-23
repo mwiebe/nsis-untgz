@@ -118,10 +118,10 @@ stack_t * peekstring(TCHAR *str, stack_t *stacktop)
 // next argument (-<arg>) or end of stack.
 // returns 0 on success, nonzero on error
  */
-int getArgList(int *argCnt, char **argList[], TCHAR *cmdline)
+int getArgList(int *argCnt, TCHAR **argList[], TCHAR *cmdline)
 {
   int cnt;
-  char **list;
+  TCHAR **list;
   TCHAR buf[1024];
 
   register int i;
@@ -157,7 +157,7 @@ int getArgList(int *argCnt, char **argList[], TCHAR *cmdline)
 
   if (cnt > 0)
   {
-    if ((list = (char **)malloc(cnt * sizeof(char *))) == NULL) 
+    if ((list = (TCHAR **)malloc(cnt * sizeof(TCHAR *))) == NULL) 
 	{
 		PrintMessage(_T("WARNING: ") _T(__FILE__) _T("::getArgList() Unable to allocate memory required!"));
 		return 1;
@@ -178,7 +178,7 @@ int getArgList(int *argCnt, char **argList[], TCHAR *cmdline)
       _tcscat(cmdline, buf);
       _tcscat(cmdline, _T("' "));
 
-      list[i] = (char *)malloc((_tcslen(buf)+1)*sizeof(char));
+      list[i] = (TCHAR *)malloc((_tcslen(buf)+1)*sizeof(TCHAR));
 	  if (list[i] == NULL)
       {
         /* free all the memory we have allocated */
@@ -192,7 +192,7 @@ int getArgList(int *argCnt, char **argList[], TCHAR *cmdline)
 		PrintMessage(_T("WARNING: ") _T(__FILE__) _T("::getArgList() Unable to allocate memory required!"));
         return 3;
       }
-      strcpy(list[i], _T2A(buf));
+      strcpy(list[i], buf);
     }
   }
   else if (cnt < 0)

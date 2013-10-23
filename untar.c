@@ -81,7 +81,7 @@ unsigned long getoct(char *p,int width)
 
 #define ISSPECIAL(c) (((c) == '*') || ((c) == '/'))
 
-int ExprMatch(char *string,char *expr)
+int ExprMatch(TCHAR *string,TCHAR *expr)
 {
   while (1)
     {
@@ -152,10 +152,10 @@ int valid_checksum(struct tar_header *header)
 /* return 1 if OK */
 /*        0 on error */
 
-int makedir (char *newdir)
+int makedir (TCHAR *newdir)
 {
-  char *buffer = strdup(newdir);
-  char *p;
+  TCHAR *buffer = strdup(newdir);
+  TCHAR *p;
   int  len = strlen(buffer);
   
   if (len <= 0) {
@@ -165,7 +165,7 @@ int makedir (char *newdir)
   if (buffer[len-1] == '/') {
     buffer[len-1] = '\0';
   }
-  if (CreateDirectoryA(buffer, NULL) != 0)
+  if (CreateDirectory(buffer, NULL) != 0)
     {
       free(buffer);
       return 1;
@@ -174,17 +174,17 @@ int makedir (char *newdir)
   p = buffer+1;
   while (1)
     {
-      char hold;
+      TCHAR hold;
       
       while(*p && *p != '\\' && *p != '/')
         p++;
       hold = *p;
       *p = 0;
       //if ((mkdir(buffer, 0775) == -1) && (errno == ENOENT /* != EEXIST */))
-      if (!CreateDirectoryA(buffer, NULL) && !((GetLastError()==ERROR_FILE_EXISTS) || (GetLastError()==ERROR_ALREADY_EXISTS)) )
+      if (!CreateDirectory(buffer, NULL) && !((GetLastError()==ERROR_FILE_EXISTS) || (GetLastError()==ERROR_ALREADY_EXISTS)) )
       {
         // fprintf(stderr,"Unable to create directory %s\n", buffer);
-        PrintMessage(_T("Unable to create directory %s\n"), _A2T(buffer));
+        PrintMessage(_T("Unable to create directory %s\n"), buffer);
         free(buffer);
 	  return 0;
       }
@@ -203,15 +203,15 @@ int makedir (char *newdir)
 #define funcName "CreateHardLinkA"
 #endif
 typedef BOOL (*CreateHardLinkTPtr)(TCHAR * linkFileName, TCHAR * existingFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-BOOL MakeHardLink(char *linkFileName, char *existingFileName)
+BOOL MakeHardLink(TCHAR *linkFileName, char *existingFileName)
 {
 	HMODULE hLib = LoadLibrary(_T("KERNEL32.DLL"));
 	CreateHardLinkTPtr chlT;
 	TCHAR f2[1024]; /* can't call _A2T in same call as uses a static buffer */
 	_tcscpy(f2, _A2T(existingFileName));
-	PrintMessage(_T("Hard link %s to %s"), _A2T(linkFileName), f2);
+	PrintMessage(_T("Hard link %s to %s"), linkFileName, f2);
 	if ((hLib != NULL) && ((chlT = (CreateHardLinkTPtr)GetProcAddress(hLib, funcName)) != NULL))
-		return chlT(_A2T(linkFileName), f2, NULL);
+		return chlT(linkFileName, f2, NULL);
 	SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
 	return FALSE;
 }
@@ -226,19 +226,19 @@ BOOL MakeHardLink(char *linkFileName, char *existingFileName)
    Current version (if not #defined out) removes any
    leading parent (..) or root (/)(\) references.
 */
-void safetyStrip(char * fname)
+void safetyStrip(TCHAR * fname)
 {
 #if 0
   /* strip root from path */
   if ((*fname == '/') || (*fname == '\\'))
   {
-    MoveMemory(fname, fname+1, strlen(fname+1) + 1 );
+    MoveMemory(fname, fname+1, (strlen(fname+1) + 1) * sizeof(TCHAR) );
   }
 
   /* now strip leading ../ */
   while ((*fname == '.') && (*(fname+1) == '.') && ((*(fname+2) == '/') || (*(fname+2) == '\\')) )
   {
-    MoveMemory(fname, fname+3, strlen(fname+3) + 1 );
+    MoveMemory(fname, fname+3, (strlen(fname+3) + 1) * sizeof(TCHAR) );
   }
 #endif
 }
@@ -247,7 +247,7 @@ void safetyStrip(char * fname)
 /* combines elements from tar header to produce
  * full [long] filename; prefix + [/] + name
  */
-void getFullName(union tar_buffer *buffer, char *fname)
+void getFullName(union tar_buffer *buffer, TCHAR *fname)
 {
 	int len = 0;
 
@@ -255,8 +255,8 @@ void getFullName(union tar_buffer *buffer, char *fname)
 	if (*(buffer->header.prefix) && (*(buffer->header.prefix) != ' '))
 	{
 		/* copy over prefix */
-		strncpy(fname,buffer->header.prefix, sizeof(buffer->header.prefix));
-		fname[sizeof(buffer->header.prefix)-1] = '\0';
+        MultiByteToWideChar(CP_ACP, 0, buffer->header.prefix, lstrlenA(buffer->header.prefix),
+                    fname, BLOCKSIZE);
 		/* ensure ends in dir separator, implied after if full prefix size used */
 		len = strlen(fname)-1; /* assumed by test above at least 1 character */
 		if ((fname[len]!='/') && (fname[len]!='\\'))
@@ -268,8 +268,8 @@ void getFullName(union tar_buffer *buffer, char *fname)
 	}
 
 	/* copy over filename portion */
-	strncpy(fname+len,buffer->header.name, sizeof(buffer->header.name));
-	fname[len+sizeof(buffer->header.name)-1] = '\0'; /* ensure terminated */
+    MultiByteToWideChar(CP_ACP, 0, buffer->header.name, lstrlenA(buffer->header.name),
+                fname+len, BLOCKSIZE-len);
 }
 
 
@@ -279,10 +279,10 @@ void getFullName(union tar_buffer *buffer, char *fname)
  * if there are less than path_sep_cnt
  * separators then all will still be there.
  */
-char * stripPath(int path_sep_cnt, char *fname)
+TCHAR * stripPath(int path_sep_cnt, TCHAR *fname)
 {
-  static char buffer[1024];
-  char *fname_use = fname + strlen(fname);
+  static TCHAR buffer[1024];
+  TCHAR *fname_use = fname + strlen(fname);
   register int i=path_sep_cnt;
   do
   {
@@ -303,9 +303,9 @@ char * stripPath(int path_sep_cnt, char *fname)
 /* returns 1 if fname in list else return 0 
  * returns 0 if list is NULL or cnt is < 0
  */
-int matchname (char *fname, int cnt, char *list[], int junkPaths)
+int matchname (TCHAR *fname, int cnt, TCHAR *list[], int junkPaths)
 {
-  register char *t;
+  register TCHAR *t;
   int i;
   int path_sep;
 
@@ -497,14 +497,14 @@ long readBlock(int cm, void *buffer)
  *   -2 means error extracting file from tarball
  *   -3 means error creating hard link
  */
-int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, char *iList[], int xCnt, char *xList[], int failOnHardLinks)
+int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, TCHAR *iList[], int xCnt, TCHAR *xList[], int failOnHardLinks)
 {
   int           getheader = 1;    /* assume initial input has a tar header */
   HANDLE        outfile = INVALID_HANDLE_VALUE;
 
   union         tar_buffer buffer;
   unsigned long remaining;
-  char          fname[BLOCKSIZE]; /* must be >= BLOCKSIZE bytes */
+  TCHAR          fname[BLOCKSIZE]; /* must be >= BLOCKSIZE bytes */
   time_t        tartime;
 
   /* do any prep work for extracting from compressed TAR file */
@@ -546,6 +546,7 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
       if (getheader == 1) /* use normal (short or posix long) filename from header */
       {
         /* NOTE: prepends any prefix, including separator, and ensures terminated */
+        memset(fname, 0, sizeof(fname));
 		getFullName(&buffer, fname);
       }
       else /* use (GNU) long filename that preceeded this header */
@@ -563,7 +564,7 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
           return -1;
         }
 #else
-		PrintMessage(_T("tgz_extract: using GNU long filename [%s]"), _A2T(fname));
+		PrintMessage(_T("tgz_extract: using GNU long filename [%s]"), fname);
 #endif
       }
       /* LogMessage("buffer.header.name is:");  LogMessage(fname); */
@@ -596,7 +597,7 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 			  if (!junkPaths) /* if we want to use paths as stored */
 			  {
 	              /* try creating directory */
-	              char *p = strrchr(fname, '/');
+	              TCHAR *p = tstrrchr(fname, '/');
 	              if (p != NULL) 
 	              {
 	                *p = '\0';
@@ -607,12 +608,12 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 			  else
 			  {
 	              /* try ignoring directory */
-	              char *p = strrchr(fname, '/');
+	              TCHAR *p = tstrrchr(fname, '/');
 	              if (p != NULL) 
 	              {
 	                /* be sure terminating '\0' is copied and */
 	                /* use ansi memcpy equivalent that handles overlapping regions */
-	                MoveMemory(fname, p+1, strlen(p+1) + 1 );
+	                MoveMemory(fname, p+1, (strlen(p+1) + 1) * sizeof(TCHAR) );
 	              }
 	          }
 	          if (*fname) /* if after stripping path a fname still exists */
@@ -631,7 +632,7 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 					/* create a hardlink if possible, else produce just a warning unless failOnHardLinks is true */
 					if (!MakeHardLink(fname, buffer.header.linkname))
 					{
-						PrintMessage(_T("Warning: unable to create hard link %s [%d]"), _A2T(fname), GetLastError());
+						PrintMessage(_T("Warning: unable to create hard link %s [%d]"), fname, GetLastError());
 						if (failOnHardLinks) 
 						{
 							cm_cleanup(cm);
@@ -640,13 +641,13 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 					}
 					else
 					{
-						outfile = CreateFileA(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+						outfile = CreateFile(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 						goto setTimeAndCloseFile;
 					}
 				} else 
 				{
 	            /* Open the file for writing mode, creating if doesn't exist and truncating if exists and overwrite mode */
-	            outfile = CreateFileA(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,(keep==OVERWRITE)?CREATE_ALWAYS:CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
+	            outfile = CreateFile(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,(keep==OVERWRITE)?CREATE_ALWAYS:CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
 
 	            /* failed to open file, either valid error (like open) or it already exists and in a keep mode */
 	            if (outfile == INVALID_HANDLE_VALUE)
@@ -662,10 +663,10 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 	                {
 	                  FILETIME ftm_a;
                       HANDLE h;
-                      WIN32_FIND_DATAA ffData;
+                      WIN32_FIND_DATA ffData;
  
 	                  cnv_tar2win_time(tartime, &ftm_a); /* archive file time */
-	                  h = FindFirstFileA(fname, &ffData); /* existing file time */
+	                  h = FindFirstFile(fname, &ffData); /* existing file time */
 
                       if (h!=INVALID_HANDLE_VALUE)
                         FindClose(h);  /* cleanup search handle */
@@ -675,7 +676,7 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
                       /* compare date+times, is one in tarball newer? */
                       if (*((LONGLONG *)&ftm_a) > *((LONGLONG *)&(ffData.ftLastWriteTime)))
                       {
-                        outfile = CreateFileA(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+                        outfile = CreateFile(fname,GENERIC_WRITE,FILE_SHARE_READ,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
                         if (outfile == INVALID_HANDLE_VALUE) goto ERR_OPENING;
                         szMsg = szSUCMsg;
                       }
@@ -684,14 +685,14 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
 	              else /* in overwrite mode or failed for some other error than exists */
 	              {
                     ERR_OPENING:
-	                PrintMessage(_T("%s%s [%d]"), szERRMsg, _A2T(fname), GetLastError());
+	                PrintMessage(_T("%s%s [%d]"), szERRMsg, fname, GetLastError());
 	                cm_cleanup(cm);
 	                return -2;
 	              }
 	            }
 
  	            /* Inform user of current extraction action (writing, skipping file XYZ) */
-	            PrintMessage(_T("%s%s"), szMsg, _A2T(fname));
+	            PrintMessage(_T("%s%s"), szMsg, fname);
 				}
 	          }
 	      }
@@ -752,9 +753,9 @@ int tgz_extract(gzFile in, int cm, int junkPaths, enum KeepMode keep, int iCnt, 
           WriteFile(outfile,buffer.buffer,bytes,&bwritten,NULL);
 		  if (bwritten != bytes)
           {
-			  PrintMessage(_T("Error: write failed for %s"), _A2T(fname));
+			  PrintMessage(_T("Error: write failed for %s"), fname);
               CloseHandle(outfile);
-              DeleteFileA(fname);
+              DeleteFile(fname);
 
               cm_cleanup(cm);
               return -2;

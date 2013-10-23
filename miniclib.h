@@ -11,6 +11,11 @@
 extern "C" {
 #endif
 
+#ifndef _WCHAR_T_DEFINED
+typedef unsigned short wchar_t;
+#define _WCHAR_T_DEFINED
+#endif
+
 /* you must call this before using any other function!!! */
 void mCRTinit(void);
 
@@ -59,15 +64,30 @@ void * malloc(size_t size);
 void * calloc(size_t num, size_t size);
 void free(void *ptr);
 void * realloc(void *ptr, size_t size);
+#ifdef UNICODE
+wchar_t * strdup(const wchar_t *str);
+wchar_t * tstrrchr(const wchar_t *str, int c);
+#else
 char * strdup(const char *str);
+char * tstrrchr(const char *str, int c);
+#endif
 char * strrchr(const char *str, int c);
 
+#ifdef UNICODE
+#define strlen lstrlenW
+#define strcpy lstrcpyW
+#define strncpy lstrcpynW
+#define strcat lstrcatW
+#define strcmp lstrcmpW
+#define strcmpi lstrcmpiW
+#else
 #define strlen lstrlenA
 #define strcpy lstrcpyA
 #define strncpy lstrcpynA
 #define strcat lstrcatA
 #define strcmp lstrcmpA
 #define strcmpi lstrcmpiA
+#endif
 
 #define wcslen lstrlenW
 #define wcscpy lstrcpyW
@@ -114,7 +134,11 @@ extern FILE *stdin, *stdout, *stderr;
 #define ferror(f) f->err
 
 /* fopen, only r[b],w[b],r[b]+,w[b]+ supported, that is a (append is not) */
+#ifdef UNICODE
+FILE * fopen(const wchar_t *filename, const char *mode);
+#else
 FILE * fopen(const char *filename, const char *mode);
+#endif
 size_t fwrite(const void *buffer, long size, long count, FILE *f);
 long fread(const void *buffer, long size, long count, FILE *f);
 int fclose(FILE *f);
@@ -142,10 +166,6 @@ FILE *_fdopen(int handle, const char *mode);
 
 #ifndef WINVER  /* default to NT4/W9x compatibility */
 #define WINVER 0x0400
-#endif
-#ifndef _WCHAR_T_DEFINED
-typedef unsigned short wchar_t;
-#define _WCHAR_T_DEFINED
 #endif
 #define WIN32_LEAN_AND_MEAN
 #define _INC_STRING		/* don't allow windows.h to include MS clib's string.h */

@@ -55,19 +55,31 @@ void * realloc(void *ptr, size_t size)
 }
 
 
-char * strdup(const char *str)
+TCHAR * strdup(const TCHAR *str)
 {
-  char *t = (char *)malloc(strlen(str)+1);
-  if (t != NULL) strcpy(t, str);
+  TCHAR *t = (TCHAR *)malloc((_tcslen(str)+1) * sizeof(TCHAR));
+  if (t != NULL) _tcscpy(t, str);
   return t;
 }
 
 char * strrchr(const char *str, int c)
 {
-	const char *t = str + strlen(str);  /* assumes str is '\0' terminated */
+	const char *t = str + lstrlenA(str);  /* assumes str is '\0' terminated */
 	while (t >=  str)
 	{
 		if (*t == (char)c) return (char *)t;
+		t--;
+	}
+
+	return NULL;
+}
+
+WCHAR * tstrrchr(const WCHAR *str, int c)
+{
+	const WCHAR *t = str + strlen(str);  /* assumes str is '\0' terminated */
+	while (t >=  str)
+	{
+		if (*t == (WCHAR)c) return (WCHAR *)t;
 		t--;
 	}
 
@@ -177,7 +189,7 @@ int memcmp(const void *s1, const void *s2, size_t n)
 
 
 /* fopen, only r[b],w[b],r[b]+,w[b]+ supported, that is a (append is not) */
-FILE * fopen(const char *filename, const char *mode)
+FILE * fopen(const TCHAR *filename, const char *mode)
 {
   DWORD dwAccess, dwCreate;
   FILE *f;
@@ -213,7 +225,7 @@ FILE * fopen(const char *filename, const char *mode)
   f->eof = 0;
   f->err = 0;
 
-  f->handle = CreateFileA(filename,dwAccess,FILE_SHARE_READ,NULL,dwCreate,FILE_ATTRIBUTE_NORMAL,NULL);
+  f->handle = CreateFile(filename,dwAccess,FILE_SHARE_READ,NULL,dwCreate,FILE_ATTRIBUTE_NORMAL,NULL);
   if (f->handle == INVALID_HANDLE_VALUE)
   {
     switch (GetLastError())
@@ -271,7 +283,7 @@ int fprintf(FILE *f, const char *format, ...)
   va_start(argptr, format);
   wvsprintfA (buf, format, argptr);
   va_end(argptr);
-  return fwrite(buf,1,strlen(buf)+1,f);
+  return fwrite(buf,1,lstrlenA(buf)+1,f);
 }
 
 int sprintf(char *buf, const char *format, ...)

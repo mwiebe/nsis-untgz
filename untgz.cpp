@@ -284,7 +284,7 @@ void argParse(HWND hwndParent, int string_size, TCHAR *variables, stack_t **stac
 
   /* if auto type specified then determine type */
   if (*compressionMethod == CM_AUTO)
-    *compressionMethod = getFileType(_T2A(buf));
+    *compressionMethod = getFileType(buf);
 
   /* check if compression method requested is supported */
   if ((*compressionMethod == CM_Z)
@@ -302,7 +302,7 @@ void argParse(HWND hwndParent, int string_size, TCHAR *variables, stack_t **stac
   /* PrintMessage("Compression Method is %i", *compressionMethod); */
 
   /* open tarball so can read/decompress it */
-  if ((*tgzFile = gzopen(_T2A(buf),"rb")) == NULL)
+  if ((*tgzFile = gzopen(buf,"rb")) == NULL)
     exitWithError(ERR_OPEN_FAILED, buf);
 
   /* set working dir (after opening tarball) to base
@@ -311,7 +311,7 @@ void argParse(HWND hwndParent, int string_size, TCHAR *variables, stack_t **stac
   */
   if (*iPath) /* != '\0' if not specified, ie current */
   {
-    makedir(_T2A(iPath));
+    makedir(iPath);
     SetCurrentDirectory(iPath);
   }
 }
@@ -340,7 +340,7 @@ void doExtraction(enum ExtractMode mode, HWND hwndParent, int string_size, TCHAR
 
   TCHAR buf[1024];         /* used for argument processor or other temp buffer */
   int iCnt=0, xCnt=0;     /* count for elements in list */
-  char **iList=NULL,      /* (char *) list[Cnt] for list of files to extract */
+  TCHAR **iList=NULL,      /* (char *) list[Cnt] for list of files to extract */
        **xList=NULL;      /* (char *) list[Cnt] for list of files to NOT extract */
 
   /* do common stuff including parsing arguments up to filename to extract */
@@ -408,10 +408,10 @@ void doExtraction(enum ExtractMode mode, HWND hwndParent, int string_size, TCHAR
 	failOnHardLinks = 1;
 
     iCnt = 1;
-    iList = (char **)malloc(sizeof(char *));
+    iList = (TCHAR **)malloc(sizeof(TCHAR *));
     /* if (iList == NULL) return -1; /* error allocating needed memory */
-    iList[0] = (char *)malloc(strlen(_T2A(buf))+1);
-    strcpy(iList[0], _T2A(buf));  /*filename*/
+    iList[0] = (TCHAR *)malloc((strlen(buf)+1)*sizeof(TCHAR));
+    strcpy(iList[0], buf);  /*filename*/
   }
   /* else if (mode == EXTRACT_ALL) {} */
 

@@ -20,7 +20,6 @@
 #ifndef NSIS_UTILS_H
 #define NSIS_UTILS_H
 
-
 #ifdef UNICODE
 #ifndef _UNICODE
 #define _UNICODE
@@ -151,7 +150,7 @@ int SetStatus(const TCHAR *pStr);
  * next argument (-<arg>) or end of stack.
  * returns 0 on success, nonzero on error
  */
-int getArgList(int *argCnt, char **argList[], TCHAR *cmdline);
+int getArgList(int *argCnt, TCHAR **argList[], TCHAR *cmdline);
 
 
 #ifdef __cplusplus
